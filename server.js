@@ -136,7 +136,7 @@ function callBigModel(messages, options = {}) {
     Authorization: apiKey
   };
 
-  const options = {
+  const requestOptions = {
     method: "POST",
     hostname: url.hostname,
     port: url.port || (isHttps ? 443 : 80),
@@ -153,7 +153,7 @@ function callBigModel(messages, options = {}) {
   }
 
   return new Promise((resolve, reject) => {
-    const req = client.request(options, (res) => {
+    const req = client.request(requestOptions, (res) => {
       let data = "";
       res.setEncoding("utf8");
       res.on("data", (chunk) => (data += chunk));
