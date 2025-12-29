@@ -348,8 +348,16 @@
 
   function setAdvice(meta, text, muted=false){
     adviceMetaEl.textContent = meta || "";
-    adviceEl.textContent = text || "";
+    adviceEl.textContent = normalizeAdviceText(text || "");
     adviceEl.classList.toggle("muted", !!muted);
+  }
+
+  function normalizeAdviceText(text){
+    return String(text)
+      .replace(/\r\n/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{2,}/g, "\n")
+      .trim();
   }
 
   const SCENES = [
