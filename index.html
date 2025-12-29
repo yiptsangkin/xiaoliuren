@@ -7,11 +7,16 @@
   <style>
     :root { --bg:#0b0f17; --panel:#121a28; --text:#e8eefc; --muted:#a8b3cf; --line:#22304a; --accent:#6ea8ff; }
     html, body { height:100%; margin:0; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
-    .app { height:100%; min-height:100%; display:grid; grid-template-columns: 430px 1fr; }
+    body { min-height: 100dvh; }
+    .app { height:100%; min-height:100dvh; display:grid; grid-template-columns: 430px 1fr; }
     .panel{
       background: linear-gradient(180deg, rgba(18,26,40,.98), rgba(18,26,40,.92));
       border-right:1px solid var(--line);
       padding:18px 16px;
+      padding-top: calc(18px + env(safe-area-inset-top));
+      padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      padding-left: calc(16px + env(safe-area-inset-left));
+      padding-right: calc(16px + env(safe-area-inset-right));
       box-sizing:border-box;
       overflow:auto;
     }
@@ -99,9 +104,25 @@
     }
 
     @media (max-width: 640px){
-      .panel{ padding:14px 12px; }
-      label{ width:72px; }
-      .row{ gap:8px; }
+      .panel{
+        padding:14px 12px;
+        padding-top: calc(14px + env(safe-area-inset-top));
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
+      }
+      .row{
+        gap:8px;
+        flex-direction: column;
+        align-items: stretch !important;
+      }
+      label{ width:auto; }
+      input, select, textarea{
+        width:100%;
+        flex: 0 0 auto;
+      }
+      button{ width:100%; }
+      textarea{ min-height: 90px; }
       .canvasWrap{
         height: 46vh;
         min-height: 260px;
