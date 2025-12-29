@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>小六壬</title>
+  <style>
+    :root { --bg:#0b0f17; --panel:#121a28; --text:#e8eefc; --muted:#a8b3cf; --line:#22304a; --accent:#6ea8ff; }
+    html, body { height:100%; margin:0; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
+    .app { height:100%; display:grid; grid-template-columns: 430px 1fr; }
+    .panel{
+      background: linear-gradient(180deg, rgba(18,26,40,.98), rgba(18,26,40,.92));
+      border-right:1px solid var(--line);
+      padding:18px 16px;
+      box-sizing:border-box;
+      overflow:auto;
+    }
+    h1{ font-size:16px; margin:0 0 10px; }
+    .hint{ color:var(--muted); font-size:12px; line-height:1.6; margin-bottom:14px; }
+    .group{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; background: rgba(255,255,255,0.02); }
+    .row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
+    label{ width:92px; color:var(--muted); font-size:13px; }
+    input, select, button, textarea{
+      border-radius:10px; border:1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color:var(--text);
+      padding:10px 10px;
+      outline:none;
+      font-size:13px;
+      box-sizing:border-box;
+    }
+    input, select, textarea{ width:1px; flex:1; min-width:0; }
+    textarea{ resize: vertical; min-height: 74px; line-height: 1.5; }
+    button{ cursor:pointer; font-weight:600; }
+    button.primary{ background: rgba(110,168,255,0.16); border-color: rgba(110,168,255,0.35); }
+    button.primary:hover{ background: rgba(110,168,255,0.22); }
+    button.ghost:hover{ background: rgba(255,255,255,0.06); }
+
+    .result{ font-size:14px; line-height:1.65; }
+    .result b{ font-size:15px; }
+    .advice{ font-size:13px; line-height:1.6; white-space:pre-wrap; }
+    .advice.muted{ color:var(--muted); }
+    .statBar{
+      height:10px; border-radius:999px; overflow:hidden;
+      border:1px solid var(--line); background: rgba(255,255,255,0.04);
+      display:flex;
+    }
+    .statBarFill{ height:100%; }
+    .statBarFill.accurate{ background: rgba(110,168,255,0.65); }
+    .statBarFill.inaccurate{ background: rgba(255,107,107,0.55); }
+    .statMeta{
+      display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;
+      font-size:12px; color:var(--muted); margin-top:6px;
+    }
+
+    .list{ margin:8px 0 0; padding:0; list-style:none; }
+    .list li{
+      display:flex; justify-content:space-between; gap:10px;
+      padding:8px 10px; border-radius:10px;
+      border:1px solid transparent;
+      color: var(--muted);
+      user-select:none;
+    }
+    .list li.active{
+      color: var(--text);
+      border-color: rgba(110,168,255,0.35);
+      background: rgba(110,168,255,0.10);
+    }
+
+    .canvasWrap{ position:relative; }
+    canvas{ width:100%; height:100%; display:block; }
+    .badge{
+      position:absolute; left:12px; bottom:12px;
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      padding:8px 10px; border-radius:12px;
+      font-size:12px; color:var(--muted);
+      backdrop-filter: blur(8px);
+    }
+    .badge b{ color:var(--text); }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+<div class="app">
+  <aside class="panel">
+    <h1>小六壬</h1>
+
+    <div class="group">
+      <div class="row">
+        <button class="primary" id="btnNow" style="flex:1;">填入当前时间（农历）</button>
+        <button class="ghost" id="btnReset" style="flex:1;">回到大安</button>
+      </div>
+
+      <div class="row" style="align-items:flex-start;">
+        <label>所问之事</label>
+        <textarea id="question" placeholder="例如：这次合作能不能成？明天谈判顺不顺？是否适合签约？"></textarea>
+      </div>
+
+      <div class="row">
+        <label>农历月</label>
+        <input id="lMonth" type="number" min="1" max="12" value="1" />
+      </div>
+      <div class="row">
+        <label>农历日</label>
+        <input id="lDay" type="number" min="1" max="30" value="1" />
+      </div>
+      <div class="row">
+        <label>时辰</label>
+        <select id="shichen">
+          <option value="1">子(23-1)</option>
+          <option value="2">丑(1-3)</option>
+          <option value="3">寅(3-5)</option>
+          <option value="4">卯(5-7)</option>
+          <option value="5">辰(7-9)</option>
+          <option value="6">巳(9-11)</option>
+          <option value="7">午(11-13)</option>
+          <option value="8">未(13-15)</option>
+          <option value="9">申(15-17)</option>
+          <option value="10">酉(17-19)</option>
+          <option value="11">戌(19-21)</option>
+          <option value="12">亥(21-23)</option>
+        </select>
+      </div>
+
+      <div class="row" style="justify-content:space-between;">
+        <button class="primary" id="btnCalc" style="flex:1;">计算（快）</button>
+        <button class="ghost" id="btnDemo" style="flex:1;">逐步演示（慢）</button>
+      </div>
+
+      <div class="hint" id="nowHint" style="margin:8px 0 0;">当前时间：—</div>
+      <div class="hint" id="lunarHint" style="margin:6px 0 0;">农历解析：—</div>
+    </div>
+
+    <div class="group">
+      <div class="result" id="result">
+        <div>当前：<b>大安</b></div>
+        <div style="color:var(--muted); font-size:12px; margin-top:6px;">
+          提示：不会自动演算；点击“计算/逐步演示”才会开始点数动画（退位起）。
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">大模型建议</div>
+      <div class="hint" id="adviceMeta" style="margin:0 0 6px;">—</div>
+      <div class="advice muted" id="advice">点击“计算/逐步演示”后生成建议。</div>
+    </div>
+
+    <div class="group">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">验证与统计</div>
+      <div class="row" style="margin:6px 0;">
+        <button class="primary" id="btnAccurate" style="flex:1;">准确</button>
+        <button class="ghost" id="btnInaccurate" style="flex:1;">不准确</button>
+      </div>
+      <div class="row" style="margin:6px 0;">
+        <button class="ghost" id="btnResetStats" style="flex:1;">重置统计</button>
+      </div>
+      <div class="hint" id="statHint" style="margin:6px 0 8px;">暂无统计，完成一次验证后会记录。</div>
+      <div class="statBar">
+        <div class="statBarFill accurate" id="statBarAccurate" style="width:0%;"></div>
+        <div class="statBarFill inaccurate" id="statBarInaccurate" style="width:0%;"></div>
+      </div>
+      <div class="statMeta">
+        <span id="statRate">准确率 0%</span>
+        <span id="statTotal">总数 0</span>
+      </div>
+      <div class="statMeta">
+        <span id="statAccurate">准确 0</span>
+        <span id="statInaccurate">不准确 0</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">六宫（循环顺序）</div>
+      <ul class="list" id="palaceList"></ul>
+    </div>
+
+    <div class="hint mono">
+      6宫：大安 → 留连 → 速喜 → 赤口 → 小吉 → 空亡（循环）
+    </div>
+  </aside>
+
+  <main class="canvasWrap">
+    <canvas id="c"></canvas>
+  </main>
+</div>
+
+<script>
+(() => {
+  // ----------------------------
+  // 基本定义
+  // ----------------------------
+  const PALACES = ["大安", "留连", "速喜", "赤口", "小吉", "空亡"];
+
+  // ----------------------------
+  // Canvas
+  // ----------------------------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  function resize() {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", () => { resize(); draw(); });
+  resize();
+
+  function layout() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const size = Math.min(w, h) * 0.22;
+    const gap = size * 0.18;
+    const gridW = size * 3 + gap * 2;
+    const gridH = size * 2 + gap * 1;
+    const x0 = (w - gridW) / 2;
+    const y0 = (h - gridH) / 2;
+
+    const cells = [];
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 3; c++) {
+        const i = r * 3 + c;
+        const x = x0 + c * (size + gap);
+        const y = y0 + r * (size + gap);
+        cells.push({ i, x, y, s: size, cx: x + size/2, cy: y + size/2 });
+      }
+    }
+    return { w, h, cells, size, gap };
+  }
+
+  // ----------------------------
+  // UI
+  // ----------------------------
+  const palaceListEl = document.getElementById("palaceList");
+  const resultEl = document.getElementById("result");
+  const nowHintEl = document.getElementById("nowHint");
+  const lunarHintEl = document.getElementById("lunarHint");
+  const adviceEl = document.getElementById("advice");
+  const adviceMetaEl = document.getElementById("adviceMeta");
+  const statHintEl = document.getElementById("statHint");
+  const statBarAccurateEl = document.getElementById("statBarAccurate");
+  const statBarInaccurateEl = document.getElementById("statBarInaccurate");
+  const statRateEl = document.getElementById("statRate");
+  const statTotalEl = document.getElementById("statTotal");
+  const statAccurateEl = document.getElementById("statAccurate");
+  const statInaccurateEl = document.getElementById("statInaccurate");
+  const btnAccurate = document.getElementById("btnAccurate");
+  const btnInaccurate = document.getElementById("btnInaccurate");
+  const btnResetStats = document.getElementById("btnResetStats");
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function setResult(title, detail="") {
+    resultEl.innerHTML = `
+      <div>当前：<b>${title}</b></div>
+      ${detail ? `<div style="margin-top:8px; color:#a8b3cf; font-size:12px; line-height:1.6;">${detail}</div>` : ""}
+    `;
+  }
+
+  function setAdvice(meta, text, muted=false){
+    adviceMetaEl.textContent = meta || "";
+    adviceEl.textContent = text || "";
+    adviceEl.classList.toggle("muted", !!muted);
+  }
+
+  const STATS_KEY = "sixren_accuracy_stats_v1";
+  let stats = { total: 0, accurate: 0, inaccurate: 0 };
+  let hasResult = false;
+  let lastEvaluation = null;
+
+  function loadStats(){
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const accurate = Math.max(0, parseInt(parsed.accurate, 10) || 0);
+      const inaccurate = Math.max(0, parseInt(parsed.inaccurate, 10) || 0);
+      let total = Math.max(0, parseInt(parsed.total, 10) || 0);
+      if (total < accurate + inaccurate) total = accurate + inaccurate;
+      stats = { total, accurate, inaccurate };
+    } catch (err) {
+      stats = { total: 0, accurate: 0, inaccurate: 0 };
+    }
+  }
+
+  function saveStats(){
+    try {
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch (err) {
+      // ignore storage errors
+    }
+  }
+
+  function setStatStatus(text){
+    statHintEl.textContent = text || "";
+  }
+
+  function updateStatsUI(){
+    const total = Math.max(0, stats.total || 0);
+    const accurate = Math.max(0, stats.accurate || 0);
+    const inaccurate = Math.max(0, stats.inaccurate || 0);
+    const rate = total ? Math.round((accurate / total) * 100) : 0;
+    const accPct = total ? (accurate / total) * 100 : 0;
+    const inaccPct = total ? (inaccurate / total) * 100 : 0;
+
+    statRateEl.textContent = `准确率 ${rate}%`;
+    statTotalEl.textContent = `总数 ${total}`;
+    statAccurateEl.textContent = `准确 ${accurate}`;
+    statInaccurateEl.textContent = `不准确 ${inaccurate}`;
+
+    statBarAccurateEl.style.width = `${accPct}%`;
+    statBarInaccurateEl.style.width = `${inaccPct}%`;
+  }
+
+  function invalidateResult(reason){
+    hasResult = false;
+    lastEvaluation = null;
+    setStatStatus(reason || "请先计算后再验证。");
+  }
+
+  function recordAccuracy(type){
+    if (!hasResult) {
+      setStatStatus("请先计算后再验证。");
+      return;
+    }
+
+    if (type !== "accurate" && type !== "inaccurate") return;
+
+    if (lastEvaluation === type) {
+      setStatStatus(type === "accurate" ? "已记录为准确。" : "已记录为不准确。");
+      return;
+    }
+
+    if (!lastEvaluation) {
+      stats.total += 1;
+    } else if (lastEvaluation === "accurate") {
+      stats.accurate = Math.max(0, stats.accurate - 1);
+    } else if (lastEvaluation === "inaccurate") {
+      stats.inaccurate = Math.max(0, stats.inaccurate - 1);
+    }
+
+    if (type === "accurate") stats.accurate += 1;
+    else stats.inaccurate += 1;
+
+    lastEvaluation = type;
+    saveStats();
+    updateStatsUI();
+    setStatStatus(type === "accurate" ? "已记录为准确。" : "已记录为不准确。");
+  }
+
+  const API_BASE = location.protocol === "file:" ? "http://localhost:3000" : "";
+
+  let adviceToken = 0;
+  async function fetchAdvice(input, palace){
+    if (!input.question) {
+      setAdvice("未生成", "请先填写所问之事。", true);
+      return;
+    }
+
+    const token = ++adviceToken;
+    setAdvice("生成中…", "正在请求大模型，请稍候。", true);
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/advice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: input.question,
+          palace,
+          lunarMonth: input.lMonth,
+          lunarDay: input.lDay,
+          shichen: input.shi
+        })
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (token !== adviceToken) return;
+
+      if (!resp.ok) {
+        throw new Error(data.error || "请求失败");
+      }
+
+      setAdvice("生成完成", data.advice || "未返回内容。", false);
+    } catch (err) {
+      if (token !== adviceToken) return;
+      setAdvice("生成失败", String(err.message || err), true);
+    }
+  }
+
+  let activeIndex = 0;
+
+  function renderPalaceList() {
+    palaceListEl.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      const li = document.createElement("li");
+      li.className = (i === activeIndex) ? "active" : "";
+      li.innerHTML = `<span>${PALACES[i]}</span><span>第 ${i+1} 宫</span>`;
+      palaceListEl.appendChild(li);
+    }
+  }
+  renderPalaceList();
+  loadStats();
+  updateStatsUI();
+  setStatStatus(stats.total ? "已加载历史统计。" : "暂无统计，完成一次验证后会记录。");
+
+  // ----------------------------
+  // 光标（半透明）
+  // ----------------------------
+  const cursor = {
+    x: 0, y: 0,
+    s: 18,
+    press: 0,     // 0..1
+    alpha: 0.55   // 半透明（你可调：0.35 更透明；0.75 更实）
+  };
+
+  function placeCursorAt(index) {
+    const { cells } = layout();
+    const c = cells[index];
+    cursor.x = c.cx;
+    cursor.y = c.cy;
+  }
+  placeCursorAt(0);
+
+  // ----------------------------
+  // 绘制
+  // ----------------------------
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+  }
+
+  function draw() {
+    const { w, h, cells } = layout();
+
+    // 背景
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, "#0b0f17");
+    bg.addColorStop(1, "#070a10");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // 画布提示
+    ctx.font = "14px system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+    ctx.fillStyle = "rgba(168,179,207,0.9)";
+    ctx.textAlign = "center";
+    ctx.fillText("六宫方格（退位起：每段第 1 下点在起点）", w/2, Math.max(26, h*0.12));
+
+    // 六宫方格
+    for (const cell of cells) {
+      const isActive = (cell.i === activeIndex);
+
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 10;
+
+      roundRect(cell.x, cell.y, cell.s, cell.s, 16);
+      const g = ctx.createLinearGradient(cell.x, cell.y, cell.x, cell.y + cell.s);
+      if (isActive) {
+        g.addColorStop(0, "rgba(110,168,255,0.22)");
+        g.addColorStop(1, "rgba(110,168,255,0.10)");
+      } else {
+        g.addColorStop(0, "rgba(255,255,255,0.06)");
+        g.addColorStop(1, "rgba(255,255,255,0.03)");
+      }
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+
+      roundRect(cell.x, cell.y, cell.s, cell.s, 16);
+      ctx.lineWidth = isActive ? 2.5 : 1.5;
+      ctx.strokeStyle = isActive ? "rgba(110,168,255,0.65)" : "rgba(34,48,74,1)";
+      ctx.stroke();
+
+      // 宫名
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.fillStyle = isActive ? "rgba(232,238,252,0.95)" : "rgba(168,179,207,0.92)";
+      ctx.font = isActive ? "16px system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif"
+                          : "15px system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+      ctx.fillText(PALACES[cell.i], cell.cx, cell.cy + 6);
+      ctx.restore();
+
+      // 序号
+      ctx.save();
+      ctx.font = "12px system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif";
+      ctx.fillStyle = isActive ? "rgba(232,238,252,0.75)" : "rgba(168,179,207,0.65)";
+      ctx.textAlign = "left";
+      ctx.fillText(String(cell.i + 1), cell.x + 10, cell.y + 18);
+      ctx.restore();
+    }
+
+    // 光标（半透明）+ 点按效果
+    const press = cursor.press;
+    const s = cursor.s * (1 + press*0.08);
+    const sx = s, sy = s * (1 - press*0.28);
+
+    // 光晕
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    ctx.arc(cursor.x, cursor.y, 34, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(110,168,255,1)";
+    ctx.fill();
+    ctx.restore();
+
+    // 影子
+    ctx.save();
+    ctx.globalAlpha = 0.26;
+    ctx.beginPath();
+    ctx.ellipse(cursor.x, cursor.y + 14 + press*8, sx*0.55, sy*0.35, 0, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(0,0,0,1)";
+    ctx.fill();
+    ctx.restore();
+
+    // 本体
+    ctx.save();
+    ctx.globalAlpha = cursor.alpha;
+    ctx.translate(cursor.x, cursor.y);
+    roundRect(-sx/2, -sy/2, sx, sy, 6);
+
+    const cg = ctx.createLinearGradient(-sx/2, -sy/2, -sx/2, sy/2);
+    cg.addColorStop(0, "#f3d6bc");
+    cg.addColorStop(1, "#d7ad8f");
+    ctx.fillStyle = cg;
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ----------------------------
+  // 动画工具
+  // ----------------------------
+  function easeInOutCubic(t){ return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  function animate(durationMs, stepFn){
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      function loop(now){
+        const t = Math.min(1, (now - t0)/durationMs);
+        stepFn(easeInOutCubic(t));
+        draw();
+        if (t < 1) requestAnimationFrame(loop);
+        else resolve();
+      }
+      requestAnimationFrame(loop);
+    });
+  }
+
+  function bezier2(p0, p1, p2, t){
+    const a = (1 - t) * (1 - t);
+    const b = 2 * (1 - t) * t;
+    const c = t * t;
+    return { x: p0.x*a + p1.x*b + p2.x*c, y: p0.y*a + p1.y*b + p2.y*c };
+  }
+
+  let motionToken = 0;
+
+  async function tapHere(speed){
+    const token = ++motionToken;
+    const durTap = speed === "slow" ? 220 : 120;
+
+    await animate(durTap, (k) => {
+      if (token !== motionToken) return;
+      cursor.press = k;
+    });
+    await animate(durTap, (k) => {
+      if (token !== motionToken) return;
+      cursor.press = 1 - k;
+    });
+  }
+
+  async function moveTo(index, speed){
+    const token = ++motionToken;
+    const { cells } = layout();
+    const end = cells[index];
+    const start = { x: cursor.x, y: cursor.y };
+
+    const durMove = speed === "slow" ? 520 : 220;
+    const durTap  = speed === "slow" ? 220 : 120;
+
+    const ctrl = { x: (start.x + end.cx)/2, y: Math.min(start.y, end.cy) - 50 };
+
+    await animate(durMove, (k) => {
+      if (token !== motionToken) return;
+      const q = bezier2(start, ctrl, {x:end.cx, y:end.cy}, k);
+      cursor.x = q.x; cursor.y = q.y;
+      cursor.press = 0;
+    });
+
+    await animate(durTap, (k) => {
+      if (token !== motionToken) return;
+      cursor.press = k;
+    });
+    await animate(durTap, (k) => {
+      if (token !== motionToken) return;
+      cursor.press = 1 - k;
+    });
+  }
+
+  // 退位起：点 n 下（第 1 下点在起点）
+  async function countByNumber(n, speed){
+    n = Math.max(1, Math.floor(n));
+
+    // 第一下：起点本身
+    await tapHere(speed);
+
+    // 后续：每一下到下一宫再点
+    for (let i = 1; i < n; i++){
+      const next = (activeIndex + 1) % 6;
+      activeIndex = next;
+      renderPalaceList();
+      await moveTo(next, speed);
+      await sleep(speed === "slow" ? 90 : 40);
+    }
+  }
+
+  // ----------------------------
+  // 农历（Intl Chinese calendar）
+  // ----------------------------
+  function parseChineseMonth(s){
+    if (!s) return null;
+    s = String(s).trim();
+
+    const m1 = s.match(/\d+/);
+    if (m1) {
+      const n = parseInt(m1[0], 10);
+      return (n >= 1 && n <= 12) ? n : null;
+    }
+
+    s = s.replace(/\s/g, "").replace("月", "").replace("闰", "");
+    if (s === "正") return 1;
+    if (s === "冬") return 11;
+    if (s === "腊") return 12;
+
+    const map = { "一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9,"十":10 };
+    if (s === "十") return 10;
+    if (s.length === 2 && s[0] === "十") return 10 + (map[s[1]] || 0);      // 十一/十二
+    if (s.length === 3 && s[1] === "十") return (map[s[0]]||0)*10 + (map[s[2]]||0);
+    return map[s] || null;
+  }
+
+  function parseChineseDay(s){
+    if (!s) return null;
+    s = String(s).trim();
+
+    const d1 = s.match(/\d+/);
+    if (d1) {
+      const n = parseInt(d1[0], 10);
+      return (n >= 1 && n <= 30) ? n : null;
+    }
+
+    s = s.replace(/\s/g, "");
+    if (s === "初十") return 10;
+    if (s === "二十") return 20;
+    if (s === "三十") return 30;
+
+    const map = { "一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9,"十":10 };
+    if (s.startsWith("初")) return map[s[1]] || null;         // 初一..初九
+    if (s.startsWith("十")) return 10 + (map[s[1]] || 0);     // 十一..十九
+    if (s.startsWith("廿")) return 20 + (map[s[1]] || 0);     // 廿一..廿九
+    if (s.startsWith("卅")) return 30;
+    if (s.length === 2 && s[0] === "十") return 10 + (map[s[1]] || 0);
+    return map[s] || null;
+  }
+
+  function getLunarMonthDay(date){
+    try {
+      const fmt = new Intl.DateTimeFormat("zh-Hans-u-ca-chinese", { month: "numeric", day: "numeric" });
+      if (typeof fmt.formatToParts !== "function") return { ok:false, reason:"Intl.formatToParts 不支持" };
+      const parts = fmt.formatToParts(date);
+      const mPart = parts.find(p => p.type === "month")?.value;
+      const dPart = parts.find(p => p.type === "day")?.value;
+
+      const m = parseChineseMonth(mPart);
+      const d = parseChineseDay(dPart);
+
+      if (!m || !d) return { ok:false, reason:`无法解析农历：month=${mPart}, day=${dPart}` };
+      return { ok:true, month:m, day:d, rawMonth:mPart, rawDay:dPart };
+    } catch (e) {
+      return { ok:false, reason:String(e?.message || e) };
+    }
+  }
+
+  // 子(23-1)、丑(1-3)、...、亥(21-23)
+  function shichenIndexFromHour(hour){
+    if (hour === 23 || hour === 0) return 1;      // 子
+    if (hour === 1 || hour === 2) return 2;       // 丑
+    if (hour === 3 || hour === 4) return 3;       // 寅
+    if (hour === 5 || hour === 6) return 4;       // 卯
+    if (hour === 7 || hour === 8) return 5;       // 辰
+    if (hour === 9 || hour === 10) return 6;      // 巳
+    if (hour === 11 || hour === 12) return 7;     // 午
+    if (hour === 13 || hour === 14) return 8;     // 未
+    if (hour === 15 || hour === 16) return 9;     // 申
+    if (hour === 17 || hour === 18) return 10;    // 酉
+    if (hour === 19 || hour === 20) return 11;    // 戌
+    return 12;                                     // 亥（21/22）
+  }
+
+  // ----------------------------
+  // 业务：输入与演算（退位起：月点月下，日点日下，时点时辰下）
+  // ----------------------------
+  const questionEl = document.getElementById("question");
+  const lMonthEl = document.getElementById("lMonth");
+  const lDayEl = document.getElementById("lDay");
+  const shiEl = document.getElementById("shichen");
+
+  function normInt(v, min, max, fallback){
+    const n = parseInt(v, 10);
+    if (Number.isFinite(n) && n >= min && n <= max) return n;
+    return fallback;
+  }
+
+  function readInputs(){
+    const lMonth = normInt(lMonthEl.value, 1, 12, 1);
+    const lDay = normInt(lDayEl.value, 1, 30, 1);
+    const shi = normInt(shiEl.value, 1, 12, 1);
+    lMonthEl.value = lMonth;
+    lDayEl.value = lDay;
+    shiEl.value = String(shi);
+    return { lMonth, lDay, shi, question: (questionEl.value || "").trim() };
+  }
+
+  function detailText(input, stage){
+    const q = input.question ? `所问：${escapeHtml(input.question)}` : `所问：未填写`;
+    const head = stage ? `<b>${stage}</b><br/>` : "";
+    return [
+      head + q,
+      `农历月=${input.lMonth}，农历日=${input.lDay}，时辰序号=${input.shi}（子=1…亥=12）`,
+      `规则：大安起月；月上起日；日上起子时；每段起点算第 1 下（退位起）。`
+    ].join("<br/>");
+  }
+
+  async function run(speed){
+    // 每次从大安起
+    activeIndex = 0;
+    renderPalaceList();
+    placeCursorAt(0);
+    cursor.press = 0;
+    draw();
+
+    const input = readInputs();
+
+    // 月：从大安起月（起点算第 1 下）
+    setResult("掐算中…", detailText(input, "起月：大安起 1 月，点到当前农历月"));
+    await countByNumber(input.lMonth, speed);
+
+    // 日：从月落点起日（起点算第 1 下）
+    setResult("掐算中…", detailText(input, "起日：月落点作初一，点到当前农历日"));
+    await countByNumber(input.lDay, speed);
+
+    // 时：从日落点起子时（起点算第 1 下）
+    setResult("掐算中…", detailText(input, "起时：日落点作子时，点到当前时辰"));
+    await countByNumber(input.shi, speed);
+
+    setResult(`${PALACES[activeIndex]}`, detailText(input, "结果"));
+    hasResult = true;
+    lastEvaluation = null;
+    setStatStatus("本次未验证，请点击“准确/不准确”。");
+    fetchAdvice(input, PALACES[activeIndex]);
+  }
+
+  // ----------------------------
+  // 填入当前时间（农历）——仅填入，不触发演算
+  // ----------------------------
+  function fillFromNow() {
+    const now = new Date();
+    nowHintEl.textContent = `当前时间：${now.toLocaleString("zh-CN")}`;
+
+    const lunar = getLunarMonthDay(now);
+    const shi = shichenIndexFromHour(now.getHours());
+
+    if (lunar.ok) {
+      lMonthEl.value = lunar.month;
+      lDayEl.value = lunar.day;
+      shiEl.value = String(shi);
+      lunarHintEl.textContent = `农历解析：${lunar.rawMonth} ${lunar.rawDay}（→ ${lunar.month}月${lunar.day}日），时辰=${shiEl.options[shi-1].text}`;
+    } else {
+      // 退回公历：明确提示
+      lMonthEl.value = now.getMonth() + 1;
+      lDayEl.value = now.getDate();
+      shiEl.value = String(shi);
+      lunarHintEl.textContent = `农历解析失败（已退回公历月/日）：原因=${lunar.reason}`;
+    }
+
+    const input = readInputs();
+    setResult(`${PALACES[activeIndex]}`, input.question ? `已填入当前时间。<br/>所问：${escapeHtml(input.question)}` : "已填入当前时间。");
+    setAdvice("未生成", input.question ? "请点击“计算/逐步演示”后生成建议。" : "请先填写所问之事。", true);
+    invalidateResult("请点击“计算/逐步演示”后再验证。");
+  }
+
+  // ----------------------------
+  // 事件
+  // ----------------------------
+  document.getElementById("btnCalc").addEventListener("click", () => run("fast"));
+  document.getElementById("btnDemo").addEventListener("click", () => run("slow"));
+
+  document.getElementById("btnReset").addEventListener("click", () => {
+    activeIndex = 0;
+    renderPalaceList();
+    placeCursorAt(0);
+    cursor.press = 0;
+    draw();
+    const q = (questionEl.value || "").trim();
+    setResult(`${PALACES[0]}`, q ? `所问：${escapeHtml(q)}<br/>已回到“大安”。` : "已回到“大安”。");
+    setAdvice("未生成", q ? "请点击“计算/逐步演示”后生成建议。" : "请先填写所问之事。", true);
+    invalidateResult("请先计算后再验证。");
+  });
+
+  document.getElementById("btnNow").addEventListener("click", () => fillFromNow());
+  btnAccurate.addEventListener("click", () => recordAccuracy("accurate"));
+  btnInaccurate.addEventListener("click", () => recordAccuracy("inaccurate"));
+  btnResetStats.addEventListener("click", () => {
+    stats = { total: 0, accurate: 0, inaccurate: 0 };
+    saveStats();
+    updateStatsUI();
+    setStatStatus("统计已清空。");
+  });
+
+  questionEl.addEventListener("input", () => {
+    const q = (questionEl.value || "").trim();
+    setResult(`${PALACES[activeIndex]}`, q ? `所问：${escapeHtml(q)}` : "所问：未填写");
+    setAdvice("未生成", q ? "请点击“计算/逐步演示”后生成建议。" : "请先填写所问之事。", true);
+    invalidateResult(q ? "问题已修改，请重新计算后验证。" : "请先填写所问之事。");
+  });
+
+  [lMonthEl, lDayEl, shiEl].forEach((el) => {
+    el.addEventListener("change", () => {
+      invalidateResult("参数已修改，请重新计算后验证。");
+    });
+  });
+
+  // ----------------------------
+  // 初始化：默认仅填入当前时间（农历），不自动演算
+  // ----------------------------
+  draw();
+  renderPalaceList();
+  fillFromNow();
+})();
+</script>
+</body>
+</html>
