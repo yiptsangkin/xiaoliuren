@@ -7,7 +7,7 @@
   <style>
     :root { --bg:#0b0f17; --panel:#121a28; --text:#e8eefc; --muted:#a8b3cf; --line:#22304a; --accent:#6ea8ff; }
     html, body { height:100%; margin:0; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:var(--bg); color:var(--text); }
-    .app { height:100%; display:grid; grid-template-columns: 430px 1fr; }
+    .app { height:100%; min-height:100%; display:grid; grid-template-columns: 430px 1fr; }
     .panel{
       background: linear-gradient(180deg, rgba(18,26,40,.98), rgba(18,26,40,.92));
       border-right:1px solid var(--line);
@@ -80,6 +80,33 @@
     .badge b{ color:var(--text); }
 
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    @media (max-width: 980px){
+      .app{
+        height:auto;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(320px, 1fr);
+      }
+      .panel{
+        border-right:none;
+        border-bottom:1px solid var(--line);
+        overflow: visible;
+      }
+      .canvasWrap{
+        height: 50vh;
+        min-height: 320px;
+      }
+    }
+
+    @media (max-width: 640px){
+      .panel{ padding:14px 12px; }
+      label{ width:72px; }
+      .row{ gap:8px; }
+      .canvasWrap{
+        height: 46vh;
+        min-height: 260px;
+      }
+    }
   </style>
 </head>
 
