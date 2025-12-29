@@ -90,6 +90,10 @@
     .badge b{ color:var(--text); }
 
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .time-only{ display:block; }
+    .number-only{ display:none; }
+    body[data-mode="number"] .time-only{ display:none; }
+    body[data-mode="number"] .number-only{ display:block; }
 
     @media (max-width: 980px){
       .app{
@@ -143,8 +147,16 @@
 
     <div class="group">
       <div class="row">
-        <button class="primary" id="btnNow" style="flex:1;">填入当前时间（农历）</button>
+        <button class="primary time-only" id="btnNow" style="flex:1;">填入当前时间（农历）</button>
         <button class="ghost" id="btnReset" style="flex:1;">回到大安</button>
+      </div>
+
+      <div class="row">
+        <label>起课方式</label>
+        <select id="modeSelect">
+          <option value="time" selected>时间起课（农历月日时）</option>
+          <option value="number">数字起课（三个数）</option>
+        </select>
       </div>
 
       <div class="row">
@@ -158,30 +170,51 @@
         <textarea id="question" placeholder="例如：这次合作能不能成？明天谈判顺不顺？是否适合签约？"></textarea>
       </div>
 
-      <div class="row">
-        <label>农历月</label>
-        <input id="lMonth" type="number" min="1" max="12" value="1" />
+      <div class="time-only">
+        <div class="row">
+          <label>农历月</label>
+          <input id="lMonth" type="number" min="1" max="12" value="1" />
+        </div>
+        <div class="row">
+          <label>农历日</label>
+          <input id="lDay" type="number" min="1" max="30" value="1" />
+        </div>
+        <div class="row">
+          <label>时辰</label>
+          <select id="shichen">
+            <option value="1">子(23-1)</option>
+            <option value="2">丑(1-3)</option>
+            <option value="3">寅(3-5)</option>
+            <option value="4">卯(5-7)</option>
+            <option value="5">辰(7-9)</option>
+            <option value="6">巳(9-11)</option>
+            <option value="7">午(11-13)</option>
+            <option value="8">未(13-15)</option>
+            <option value="9">申(15-17)</option>
+            <option value="10">酉(17-19)</option>
+            <option value="11">戌(19-21)</option>
+            <option value="12">亥(21-23)</option>
+          </select>
+        </div>
       </div>
-      <div class="row">
-        <label>农历日</label>
-        <input id="lDay" type="number" min="1" max="30" value="1" />
-      </div>
-      <div class="row">
-        <label>时辰</label>
-        <select id="shichen">
-          <option value="1">子(23-1)</option>
-          <option value="2">丑(1-3)</option>
-          <option value="3">寅(3-5)</option>
-          <option value="4">卯(5-7)</option>
-          <option value="5">辰(7-9)</option>
-          <option value="6">巳(9-11)</option>
-          <option value="7">午(11-13)</option>
-          <option value="8">未(13-15)</option>
-          <option value="9">申(15-17)</option>
-          <option value="10">酉(17-19)</option>
-          <option value="11">戌(19-21)</option>
-          <option value="12">亥(21-23)</option>
-        </select>
+
+      <div class="number-only">
+        <div class="row">
+          <label>数字一</label>
+          <input id="num1" type="number" min="1" max="999" value="1" />
+        </div>
+        <div class="row">
+          <label>数字二</label>
+          <input id="num2" type="number" min="1" max="999" value="1" />
+        </div>
+        <div class="row">
+          <label>数字三</label>
+          <input id="num3" type="number" min="1" max="999" value="1" />
+        </div>
+        <div class="row">
+          <button class="ghost" id="btnRandomNums" style="flex:1;">随机三数</button>
+        </div>
+        <div class="hint" id="numHint" style="margin:0 0 6px;">提示：数字起课按“三数依次点数”起宫。</div>
       </div>
 
       <div class="row" style="justify-content:space-between;">
@@ -189,8 +222,10 @@
         <button class="ghost" id="btnDemo" style="flex:1;">逐步演示（慢）</button>
       </div>
 
-      <div class="hint" id="nowHint" style="margin:8px 0 0;">当前时间：—</div>
-      <div class="hint" id="lunarHint" style="margin:6px 0 0;">农历解析：—</div>
+      <div class="time-only">
+        <div class="hint" id="nowHint" style="margin:8px 0 0;">当前时间：—</div>
+        <div class="hint" id="lunarHint" style="margin:6px 0 0;">农历解析：—</div>
+      </div>
     </div>
 
     <div class="group">
@@ -321,6 +356,7 @@
   const adviceMetaEl = document.getElementById("adviceMeta");
   const apiKeyEl = document.getElementById("apiKey");
   const modelEl = document.getElementById("model");
+  const modeSelectEl = document.getElementById("modeSelect");
   const sceneSelectEl = document.getElementById("sceneSelect");
   const sceneHintEl = document.getElementById("sceneHint");
   const rhymeBoxEl = document.getElementById("rhymeBox");
@@ -334,6 +370,11 @@
   const btnAccurate = document.getElementById("btnAccurate");
   const btnInaccurate = document.getElementById("btnInaccurate");
   const btnResetStats = document.getElementById("btnResetStats");
+  const num1El = document.getElementById("num1");
+  const num2El = document.getElementById("num2");
+  const num3El = document.getElementById("num3");
+  const numHintEl = document.getElementById("numHint");
+  const btnRandomNums = document.getElementById("btnRandomNums");
 
   function escapeHtml(s){
     return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -358,6 +399,12 @@
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{2,}/g, "\n")
       .trim();
+  }
+
+  function setMode(mode){
+    const value = mode === "number" ? "number" : "time";
+    document.body.dataset.mode = value;
+    modeSelectEl.value = value;
   }
 
   const SCENES = [
@@ -814,7 +861,7 @@
 
   async function tapHere(speed){
     const token = ++motionToken;
-    const durTap = speed === "slow" ? 220 : 120;
+    const durTap = speed === "slow" ? 220 : 80;
 
     await animate(durTap, (k) => {
       if (token !== motionToken) return;
@@ -832,8 +879,8 @@
     const end = cells[index];
     const start = { x: cursor.x, y: cursor.y };
 
-    const durMove = speed === "slow" ? 520 : 220;
-    const durTap  = speed === "slow" ? 220 : 120;
+    const durMove = speed === "slow" ? 520 : 160;
+    const durTap  = speed === "slow" ? 220 : 90;
 
     const ctrl = { x: (start.x + end.cx)/2, y: Math.min(start.y, end.cy) - 50 };
 
@@ -867,7 +914,7 @@
       activeIndex = next;
       renderPalaceList();
       await moveTo(next, speed);
-      await sleep(speed === "slow" ? 90 : 40);
+      await sleep(speed === "slow" ? 90 : 20);
     }
   }
 
@@ -968,19 +1015,42 @@
     return fallback;
   }
 
+  function readNumberInputs(){
+    const n1 = normInt(num1El.value, 1, 999, 1);
+    const n2 = normInt(num2El.value, 1, 999, 1);
+    const n3 = normInt(num3El.value, 1, 999, 1);
+    num1El.value = n1;
+    num2El.value = n2;
+    num3El.value = n3;
+    return { n1, n2, n3 };
+  }
+
   function readInputs(){
+    const mode = modeSelectEl.value === "number" ? "number" : "time";
+    const question = (questionEl.value || "").trim();
+    if (mode === "number") {
+      const { n1, n2, n3 } = readNumberInputs();
+      return { mode, n1, n2, n3, question };
+    }
     const lMonth = normInt(lMonthEl.value, 1, 12, 1);
     const lDay = normInt(lDayEl.value, 1, 30, 1);
     const shi = normInt(shiEl.value, 1, 12, 1);
     lMonthEl.value = lMonth;
     lDayEl.value = lDay;
     shiEl.value = String(shi);
-    return { lMonth, lDay, shi, question: (questionEl.value || "").trim() };
+    return { mode, lMonth, lDay, shi, question };
   }
 
   function detailText(input, stage){
     const q = input.question ? `所问：${escapeHtml(input.question)}` : `所问：未填写`;
     const head = stage ? `<b>${stage}</b><br/>` : "";
+    if (input.mode === "number") {
+      return [
+        head + q,
+        `数字起课：${input.n1} / ${input.n2} / ${input.n3}`,
+        `规则：大安起第一数；落点起第二数；再起第三数（退位起）。`
+      ].join("<br/>");
+    }
     return [
       head + q,
       `农历月=${input.lMonth}，农历日=${input.lDay}，时辰序号=${input.shi}（子=1…亥=12）`,
@@ -998,17 +1068,22 @@
 
     const input = readInputs();
 
-    // 月：从大安起月（起点算第 1 下）
-    setResult("掐算中…", detailText(input, "起月：大安起 1 月，点到当前农历月"));
-    await countByNumber(input.lMonth, speed);
+    const steps = (input.mode === "number")
+      ? [
+          { label: "起数：第一数，点到当前数字", value: input.n1 },
+          { label: "起数：第二数，接续点数", value: input.n2 },
+          { label: "起数：第三数，接续点数", value: input.n3 }
+        ]
+      : [
+          { label: "起月：大安起 1 月，点到当前农历月", value: input.lMonth },
+          { label: "起日：月落点作初一，点到当前农历日", value: input.lDay },
+          { label: "起时：日落点作子时，点到当前时辰", value: input.shi }
+        ];
 
-    // 日：从月落点起日（起点算第 1 下）
-    setResult("掐算中…", detailText(input, "起日：月落点作初一，点到当前农历日"));
-    await countByNumber(input.lDay, speed);
-
-    // 时：从日落点起子时（起点算第 1 下）
-    setResult("掐算中…", detailText(input, "起时：日落点作子时，点到当前时辰"));
-    await countByNumber(input.shi, speed);
+    for (const step of steps) {
+      setResult("掐算中…", detailText(input, step.label));
+      await countByNumber(step.value, speed);
+    }
 
     setResult(`${PALACES[activeIndex]}`, detailText(input, "结果"));
     hasResult = true;
@@ -1065,6 +1140,21 @@
   });
 
   document.getElementById("btnNow").addEventListener("click", () => fillFromNow());
+  modeSelectEl.addEventListener("change", () => {
+    setMode(modeSelectEl.value);
+    invalidateResult("起课方式已切换，请重新计算。");
+  });
+  btnRandomNums.addEventListener("click", () => {
+    const rand = () => Math.floor(Math.random() * 30) + 1;
+    const n1 = rand();
+    const n2 = rand();
+    const n3 = rand();
+    num1El.value = n1;
+    num2El.value = n2;
+    num3El.value = n3;
+    numHintEl.textContent = `已随机：${n1} / ${n2} / ${n3}`;
+    invalidateResult("随机数字已生成，请重新计算。");
+  });
   btnAccurate.addEventListener("click", () => recordAccuracy("accurate"));
   btnInaccurate.addEventListener("click", () => recordAccuracy("inaccurate"));
   btnResetStats.addEventListener("click", () => {
@@ -1092,11 +1182,18 @@
     });
   });
 
+  [num1El, num2El, num3El].forEach((el) => {
+    el.addEventListener("change", () => {
+      invalidateResult("数字已修改，请重新计算后验证。");
+    });
+  });
+
   // ----------------------------
   // 初始化：默认仅填入当前时间（农历），不自动演算
   // ----------------------------
   draw();
   renderPalaceList();
+  setMode(modeSelectEl.value);
   fillFromNow();
 })();
 </script>
