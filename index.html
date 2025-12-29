@@ -25,6 +25,8 @@
     .group{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; background: rgba(255,255,255,0.02); }
     .row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
     label{ width:92px; color:var(--muted); font-size:13px; }
+    a.link{ color:var(--accent); text-decoration:none; margin-left:6px; font-size:12px; }
+    a.link:hover{ text-decoration:underline; }
     input, select, button, textarea{
       border-radius:10px; border:1px solid var(--line);
       background: rgba(255,255,255,0.03);
@@ -185,7 +187,7 @@
     <div class="group">
       <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">模型设置</div>
       <div class="row">
-        <label>API Key</label>
+        <label>API Key <a class="link" href="https://open.bigmodel.cn/" target="_blank" rel="noopener noreferrer">智谱官网</a></label>
         <input id="apiKey" type="password" placeholder="可选：留空使用服务器默认" />
       </div>
       <div class="row">
