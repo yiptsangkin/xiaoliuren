@@ -66,22 +66,24 @@ function buildMessages(payload) {
   const shichen = payload.shichen || "";
 
   const system = [
-    "You are a helpful assistant for XiaoliuRen readings.",
-    "Respond in Simplified Chinese.",
-    "Keep it concise and practical; avoid extreme claims.",
-    "Use the result palace as the primary signal and tie it to the question.",
-    "If the question is missing or vague, ask for clarification briefly."
+    "你是小六壬解读助手，只用中文输出。",
+    "风格：简洁、明确、可执行，不做夸张断言。",
+    "必须以落宫为主线，结合问题给出判断。",
+    "如果问题缺失或过于模糊，只提出一个补充问题，不输出其它内容。",
+    "输出必须严格遵循指定结构。"
   ].join(" ");
 
   const user = [
-    `Question: ${question || "(empty)"}`,
-    `Result palace: ${palace}`,
-    `Lunar month/day: ${lunarMonth}/${lunarDay}`,
-    `Shichen index: ${shichen} (1=Zi ... 12=Hai)`,
-    "Reference meanings (optional):",
-    "Da An=stability; Liu Lian=delay; Su Xi=good news; Chi Kou=dispute;",
-    "Xiao Ji=small fortune; Kong Wang=uncertainty/empty.",
-    "Provide a short reading and 2-4 actionable suggestions."
+    `问题：${question || "（空）"}`,
+    `结果宫位：${palace}`,
+    `农历月日：${lunarMonth}/${lunarDay}`,
+    `时辰序号：${shichen}（1=子…12=亥）`,
+    "宫位含义参考：大安=稳定；留连=拖延；速喜=利好；赤口=口舌/冲突；小吉=小成；空亡=不定/落空。",
+    "请按以下格式输出（不要增加标题或多余段落）：",
+    "【结论】一句话结论（<=20字）",
+    "【依据】3条要点（每条<=18字）",
+    "【建议】2-4条可执行建议（每条<=18字）",
+    "【风险/注意】1-2条提醒（每条<=18字）"
   ].join("\n");
 
   return [

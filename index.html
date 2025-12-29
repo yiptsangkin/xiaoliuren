@@ -48,6 +48,8 @@
     .result b{ font-size:15px; }
     .advice{ font-size:13px; line-height:1.6; white-space:pre-wrap; }
     .advice.muted{ color:var(--muted); }
+    .poem{ font-size:12px; line-height:1.6; color:var(--muted); white-space:pre-wrap; }
+    .poem b{ color:var(--text); font-weight:600; }
     .statBar{
       height:10px; border-radius:999px; overflow:hidden;
       border:1px solid var(--line); background: rgba(255,255,255,0.04);
@@ -144,6 +146,12 @@
         <button class="primary" id="btnNow" style="flex:1;">填入当前时间（农历）</button>
         <button class="ghost" id="btnReset" style="flex:1;">回到大安</button>
       </div>
+
+      <div class="row">
+        <label>场景</label>
+        <select id="sceneSelect"></select>
+      </div>
+      <div class="hint" id="sceneHint" style="margin:0 0 6px;">提示：选择场景会覆盖“所问之事”，可再编辑；通行歌诀见下方。</div>
 
       <div class="row" style="align-items:flex-start;">
         <label>所问之事</label>
@@ -242,6 +250,12 @@
       <ul class="list" id="palaceList"></ul>
     </div>
 
+    <div class="group">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">六宫歌诀（通行整理）</div>
+      <div class="hint" style="margin:0 0 6px;">来源不详，版本差异较大，仅作参考。</div>
+      <div class="poem" id="rhymeBox"></div>
+    </div>
+
     <div class="hint mono">
       6宫：大安 → 留连 → 速喜 → 赤口 → 小吉 → 空亡（循环）
     </div>
@@ -307,6 +321,9 @@
   const adviceMetaEl = document.getElementById("adviceMeta");
   const apiKeyEl = document.getElementById("apiKey");
   const modelEl = document.getElementById("model");
+  const sceneSelectEl = document.getElementById("sceneSelect");
+  const sceneHintEl = document.getElementById("sceneHint");
+  const rhymeBoxEl = document.getElementById("rhymeBox");
   const statHintEl = document.getElementById("statHint");
   const statBarAccurateEl = document.getElementById("statBarAccurate");
   const statBarInaccurateEl = document.getElementById("statBarInaccurate");
@@ -333,6 +350,141 @@
     adviceMetaEl.textContent = meta || "";
     adviceEl.textContent = text || "";
     adviceEl.classList.toggle("muted", !!muted);
+  }
+
+  const SCENES = [
+    {
+      id: "general",
+      name: "通用/趋势",
+      prompt: "这件事接下来走势如何？我应注意什么？",
+      guide: "问趋势、问阻碍、问应对。"
+    },
+    {
+      id: "lost",
+      name: "寻物",
+      prompt: "我丢失的物品能否找回？在哪里更可能找到？",
+      guide: "问能否、问方位、问线索。"
+    },
+    {
+      id: "relationship",
+      name: "感情/关系",
+      prompt: "我们这段关系会如何发展？现在该做什么？",
+      guide: "问走向、问沟通、问时机。"
+    },
+    {
+      id: "business",
+      name: "合作/商务",
+      prompt: "这次合作是否顺利？风险点在哪里？",
+      guide: "问成否、问阻碍、问条件。"
+    },
+    {
+      id: "money",
+      name: "求财/收入",
+      prompt: "这笔钱财能否到位？何时有机会？",
+      guide: "问得失、问时机、问守。"
+    },
+    {
+      id: "travel",
+      name: "出行/出差",
+      prompt: "这次出行是否顺利？有哪些需要避开的点？",
+      guide: "问顺逆、问安全、问时间。"
+    },
+    {
+      id: "dispute",
+      name: "纠纷/诉讼",
+      prompt: "这次纠纷结果如何？适合如何处理？",
+      guide: "问胜负、问和解、问时机。"
+    },
+    {
+      id: "health",
+      name: "健康/病痛",
+      prompt: "这次身体不适的恢复情况如何？需要注意什么？",
+      guide: "问轻重、问恢复、问忌。"
+    },
+    {
+      id: "study",
+      name: "学业/考试",
+      prompt: "这次考试/评审结果如何？如何准备更稳？",
+      guide: "问成败、问短板、问方法。"
+    },
+    {
+      id: "career",
+      name: "求职/职场",
+      prompt: "这次面试/岗位机会如何？何时反馈？",
+      guide: "问成否、问机会、问应对。"
+    },
+    {
+      id: "investment",
+      name: "投资/决策",
+      prompt: "这项投资/决策是否合适？风险在哪里？",
+      guide: "问利害、问风险、问时机。"
+    },
+    {
+      id: "family",
+      name: "家宅/人事",
+      prompt: "家中这件事进展如何？需要注意什么？",
+      guide: "问进展、问人和、问调整。"
+    }
+  ];
+  const sceneHintDefault = "提示：选择场景会覆盖“所问之事”，可再编辑；通行歌诀见下方。";
+
+  const PALACE_RHYMES = [
+    {
+      name: "大安",
+      verse: "事事昌，求财在坤方，失物去不远，宅舍保安康。行人身未动，病者主无妨，官事只宜缓，口舌得安康。"
+    },
+    {
+      name: "留连",
+      verse: "事难成，求谋日未明，官事凡宜缓，去者未回程。失物南方去，急寻方可成，行人未还路，病者难安宁。"
+    },
+    {
+      name: "速喜",
+      verse: "喜来临，求财向南行，失物申午未，逢人路上寻。官事有福德，病者得安宁，行人即便至，口舌自消停。"
+    },
+    {
+      name: "赤口",
+      verse: "主口舌，官非切莫强，失物速速寻，行人有惊慌。求财多不利，病者多缠磨，凡事宜忍让，慎防是非伤。"
+    },
+    {
+      name: "小吉",
+      verse: "最吉昌，路上好商量，阴人来报喜，失物在坤方。行人立便至，交关得安康，百事皆和合，病者保无妨。"
+    },
+    {
+      name: "空亡",
+      verse: "事不祥，阴人多乖张，求财无利益，行人有灾殃。失物寻不见，官事有刑伤，病者逢暗鬼，解厄保安康。"
+    }
+  ];
+
+  function renderScenes(){
+    sceneSelectEl.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "— 选择场景 —";
+    sceneSelectEl.appendChild(opt);
+    for (const s of SCENES) {
+      const o = document.createElement("option");
+      o.value = s.id;
+      o.textContent = s.name;
+      sceneSelectEl.appendChild(o);
+    }
+    sceneHintEl.textContent = sceneHintDefault;
+  }
+
+  function applyScene(scene){
+    if (!scene) {
+      sceneHintEl.textContent = sceneHintDefault;
+      return;
+    }
+    sceneHintEl.textContent = `场景提示词：${scene.guide}（模板已填入，可编辑；通行歌诀见下方）`;
+    questionEl.value = scene.prompt;
+    questionEl.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function renderRhymes(){
+    const lines = PALACE_RHYMES.map((item) => {
+      return `<b>${item.name}</b>：${escapeHtml(item.verse)}`;
+    });
+    rhymeBoxEl.innerHTML = lines.join("<br/>");
   }
 
   const STATS_KEY = "sixren_accuracy_stats_v1";
@@ -486,6 +638,8 @@
   loadStats();
   updateStatsUI();
   setStatStatus(stats.total ? "已加载历史统计。" : "暂无统计，完成一次验证后会记录。");
+  renderScenes();
+  renderRhymes();
 
   // ----------------------------
   // 光标（半透明）
@@ -917,6 +1071,11 @@
     setResult(`${PALACES[activeIndex]}`, q ? `所问：${escapeHtml(q)}` : "所问：未填写");
     setAdvice("未生成", q ? "请点击“计算/逐步演示”后生成建议。" : "请先填写所问之事。", true);
     invalidateResult(q ? "问题已修改，请重新计算后验证。" : "请先填写所问之事。");
+  });
+
+  sceneSelectEl.addEventListener("change", () => {
+    const scene = SCENES.find((s) => s.id === sceneSelectEl.value);
+    applyScene(scene);
   });
 
   [lMonthEl, lDayEl, shiEl].forEach((el) => {
