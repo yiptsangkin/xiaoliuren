@@ -25,6 +25,7 @@
     .group{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; background: rgba(255,255,255,0.02); }
     .row{ display:flex; gap:10px; align-items:center; margin:10px 0; }
     label{ width:92px; color:var(--muted); font-size:13px; }
+    .req{ color:#ff8a8a; margin-left:4px; font-size:12px; }
     a.link{ color:var(--accent); text-decoration:none; margin-left:6px; font-size:12px; }
     a.link:hover{ text-decoration:underline; }
     input, select, button, textarea{
@@ -187,14 +188,14 @@
     <div class="group">
       <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">模型设置</div>
       <div class="row">
-        <label>API Key <a class="link" href="https://open.bigmodel.cn/" target="_blank" rel="noopener noreferrer">智谱官网</a></label>
-        <input id="apiKey" type="password" placeholder="可选：留空使用服务器默认" />
+        <label>API Key<span class="req">*</span><a class="link" href="https://open.bigmodel.cn/" target="_blank" rel="noopener noreferrer">智谱官网</a></label>
+        <input id="apiKey" type="password" placeholder="必填：填入智谱 API Key" />
       </div>
       <div class="row">
         <label>模型</label>
         <input id="model" type="text" placeholder="例如：glm-4.7" />
       </div>
-      <div class="hint" style="margin:0;">提示：生产环境建议用服务器环境变量。</div>
+      <div class="hint" style="margin:0;">提示：需填写 API Key 才能生成建议。</div>
     </div>
 
     <div class="group">
@@ -430,6 +431,11 @@
 
     const apiKey = (apiKeyEl?.value || "").trim();
     const model = (modelEl?.value || "").trim();
+
+    if (!apiKey) {
+      setAdvice("未生成", "请先填写 API Key。", true);
+      return;
+    }
 
     const token = ++adviceToken;
     setAdvice("生成中…", "正在请求大模型，请稍候。", true);
