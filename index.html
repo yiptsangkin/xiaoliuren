@@ -135,6 +135,19 @@
     </div>
 
     <div class="group">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px;">模型设置</div>
+      <div class="row">
+        <label>API Key</label>
+        <input id="apiKey" type="password" placeholder="可选：留空使用服务器默认" />
+      </div>
+      <div class="row">
+        <label>模型</label>
+        <input id="model" type="text" placeholder="例如：glm-4.7" />
+      </div>
+      <div class="hint" style="margin:0;">提示：生产环境建议用服务器环境变量。</div>
+    </div>
+
+    <div class="group">
       <div class="result" id="result">
         <div>当前：<b>大安</b></div>
         <div style="color:var(--muted); font-size:12px; margin-top:6px;">
@@ -241,6 +254,8 @@
   const lunarHintEl = document.getElementById("lunarHint");
   const adviceEl = document.getElementById("advice");
   const adviceMetaEl = document.getElementById("adviceMeta");
+  const apiKeyEl = document.getElementById("apiKey");
+  const modelEl = document.getElementById("model");
   const statHintEl = document.getElementById("statHint");
   const statBarAccurateEl = document.getElementById("statBarAccurate");
   const statBarInaccurateEl = document.getElementById("statBarInaccurate");
@@ -363,20 +378,27 @@
       return;
     }
 
+    const apiKey = (apiKeyEl?.value || "").trim();
+    const model = (modelEl?.value || "").trim();
+
     const token = ++adviceToken;
     setAdvice("生成中…", "正在请求大模型，请稍候。", true);
 
     try {
+      const payload = {
+        question: input.question,
+        palace,
+        lunarMonth: input.lMonth,
+        lunarDay: input.lDay,
+        shichen: input.shi
+      };
+      if (apiKey) payload.apiKey = apiKey;
+      if (model) payload.model = model;
+
       const resp = await fetch(`${API_BASE}/api/advice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: input.question,
-          palace,
-          lunarMonth: input.lMonth,
-          lunarDay: input.lDay,
-          shichen: input.shi
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await resp.json().catch(() => ({}));

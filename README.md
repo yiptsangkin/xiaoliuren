@@ -12,6 +12,8 @@ node server.js
 
 浏览器打开：`http://localhost:3000`
 
+页面支持填写 `API Key` 和模型名，留空则使用服务器环境变量。注意：在前端填写会暴露给浏览器用户。
+
 ## Vercel 部署
 
 - 将仓库推到 GitHub/GitLab/Bitbucket
@@ -25,7 +27,7 @@ node server.js
 
 - `BIGMODEL_API_KEY`/`ZHIPU_API_KEY`：智谱 API Key
 - `BIGMODEL_API_URL`：接口地址（默认 `https://open.bigmodel.cn/api/paas/v4/chat/completions`）
-- `BIGMODEL_MODEL`：模型名（默认 `glm-4.7`）
+- `BIGMODEL_MODEL`：模型名（默认见服务端配置）
 - `BIGMODEL_MAX_TOKENS`：最大输出长度（默认 `4096`）
 - `BIGMODEL_TEMPERATURE`：温度（默认 `0.7`）
 - `BIGMODEL_THINKING`：是否开启思维链（如 `enabled`）

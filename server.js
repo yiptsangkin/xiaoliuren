@@ -90,9 +90,10 @@ function buildMessages(payload) {
   ];
 }
 
-function callBigModel(messages) {
+function callBigModel(messages, options = {}) {
   const apiKey = formatBearerToken(
-    process.env.BIGMODEL_API_KEY ||
+    options.apiKey ||
+      process.env.BIGMODEL_API_KEY ||
       process.env.ZHIPU_API_KEY ||
       process.env.API_KEY ||
       process.env.QWEN_API_KEY ||
@@ -103,6 +104,7 @@ function callBigModel(messages) {
   }
 
   const model =
+    options.model ||
     process.env.BIGMODEL_MODEL ||
     process.env.ZHIPU_MODEL ||
     "glm-4.5-flash";
@@ -215,7 +217,15 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { question, palace, lunarMonth, lunarDay, shichen } = payload;
+      const {
+        question,
+        palace,
+        lunarMonth,
+        lunarDay,
+        shichen,
+        apiKey,
+        model
+      } = payload;
       if (!question || !palace) {
         sendJson(res, 400, { error: "question and palace are required" });
         return;
@@ -229,7 +239,7 @@ const server = http.createServer(async (req, res) => {
         shichen
       });
 
-      const upstream = await callBigModel(messages);
+      const upstream = await callBigModel(messages, { apiKey, model });
       if (upstream.status < 200 || upstream.status >= 300) {
         sendJson(res, 502, {
           error: `Upstream error ${upstream.status}`,
